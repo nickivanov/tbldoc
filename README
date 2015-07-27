@@ -1,0 +1,73 @@
+tbldoc v0.1
+Copyright (c) 2004-2006 Nick Ivanov / nick@datori.org
+All rights reserved.
+
+
+README
+======
+
+1. What's in this archive
+2. How to use this stuff
+3. Notes
+
+1. What's in this archive
+--------------------------
+
+This archive contains a bunch of SQL scripts, XSD and XSL files, and a sample 
+CSS style sheet that all serve a single purpose: to create simple documents 
+describing tables and views in a database. 
+
+The information that is extracted from a database system catalog contains 
+description of each column of each (specified) table and view. That inormation
+is saved as an XML document that conforms to the provided schema. An XSL 
+transformation can then be applied to that XML in order to produce an HTML
+representation of the catalog data. 
+
+Internet Explorer and Firefox can perform  transformation of XML documents "on 
+the fly", so opening XML file in one of those browsers presents a nicely 
+formatted database catalog. A sample style sheet (CSS) is provided to format the 
+HTML.
+
+The HTML file can be viewed online, copied and pasted into a word processing 
+program, or opened directly by such program (e.g. Microsoft Word).  
+
+Database system catalog contents differ from vendor to vendor and from 
+version to version. For this reason the SQL query used to extract catalog
+information is also different in each case. 
+
+List of files in this archive:
+
+	README			- this file;
+	tbldoc.xsd		- XML schema definition
+	tbldoc.xsl		- XSL transformation template
+	tbldoc_db2v8.sql	- database catalog extraction script for 
+				  DB2 UDB v8
+	sample.xml		- sample database catalog, as extracted by the 	
+			  script
+	tbldoc.css		- sample style sheet for the HTML presentation
+
+
+2. How to use this stuff
+------------------------
+
+Extract the files into a directory.
+
+You will need to edit the SQL script to make it extract the data you need. By 
+default all tables and views that are not in SYS% schemas will be selected.
+
+Connect to the database and run the extraction script, redirecting its output to 
+a file. For example:
+
+	db2 -xtf tbldoc_db2v8.sql -r catalog.xml
+
+Open catalog.xml in Internet Explorer or Firefox (other browsers may work to; I 
+didn't test it though).
+
+3. Notes
+--------
+
+At this time only one extraction script is available: for DB2 UDB v8. I may come 
+up with versions for other DBMS's one day writing your own script should be 
+relatively easy.
+
+
