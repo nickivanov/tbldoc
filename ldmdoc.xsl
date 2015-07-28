@@ -49,7 +49,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
                                                  
  -->
-<xsl:stylesheet version="2.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
 	xmlns:xmi="http://www.omg.org/XMI"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xmlns:LogicalDataModel="http:///com/ibm/db/models/logical/logical.ecore"
@@ -198,18 +198,30 @@ td.ralign { text-align: right }
 	<xsl:variable name="child-key" select="relationshipEnds[@xmi:id = $this-end-id]/@key" />
 	<xsl:variable name="parent-ent" select="relationshipEnds[not ( @xmi:id = $this-end-id ) ]/@entity" />
 	<xsl:variable name="parent-key" select="relationshipEnds[not ( @xmi:id = $this-end-id ) ]/@key" />
+	<xsl:variable name="primary-key" select="//LogicalDataModel:Entity[@xmi:id = $own-ent]/keys[ @xsi:type = 'LogicalDataModel:PrimaryKey' ]/@xmi:id" />
 
 	<li>
 		<!-- child attributes -->
-		<xsl:apply-templates select="//LogicalDataModel:Entity[@xmi:id = $own-ent]" mode="child-key" >
-			<xsl:with-param name="key-id" select="$child-key"/>
-		</xsl:apply-templates> 
-		<!-- FK name -->
-		-- <!-- (<xsl:value-of select="@name"/>) --> -->
+		<xsl:choose>
+			<xsl:when test="$child-key">
+				<xsl:apply-templates select="//LogicalDataModel:Entity[@xmi:id = $own-ent]" mode="child-key" >
+					<xsl:with-param name="key-id" select="$child-key"/>
+				</xsl:apply-templates> 
+				====> 
+			</xsl:when>
+			<xsl:otherwise>
+				<xsl:apply-templates select="//LogicalDataModel:Entity[@xmi:id = $own-ent]" mode="child-key" >
+					<xsl:with-param name="key-id" select="$primary-key"/>
+				</xsl:apply-templates> 
+				&lt;====> 
+			</xsl:otherwise>
+		</xsl:choose>
 		<!-- parent entity name and attributes --> 
 		<xsl:apply-templates select="//LogicalDataModel:Entity[@xmi:id = $parent-ent]" mode="parent-key" >
 			<xsl:with-param name="key-id" select="$parent-key"/>
 		</xsl:apply-templates> 
+		<!-- FK name -->
+		<span class="smalltxt">[<xsl:value-of select="@name"/>]</span>
 	</li>
 </xsl:template>
 
@@ -223,7 +235,7 @@ td.ralign { text-align: right }
 <xsl:template match="LogicalDataModel:Entity" mode="parent-key" >
 	<xsl:param name="key-id" />
 	<xsl:variable name="key-attrs" select="keys[ @xmi:id = $key-id ]/@attributes" />
-	<xsl:value-of select="@name"/>(<xsl:apply-templates select="attributes[contains( $key-attrs, @xmi:id)]" mode="fk"/>)
+	<xsl:value-of select="@name"/> ( <xsl:apply-templates select="attributes[contains( $key-attrs, @xmi:id)]" mode="fk"/> )
 </xsl:template>
 
 <xsl:template match="keys" mode="fk" >
