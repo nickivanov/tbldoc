@@ -138,9 +138,11 @@ td.ralign { text-align: right }
 </xsl:template>
 
 <xsl:template match="LogicalDataModel:Entity" mode="entity">
+	<xsl:variable name="this-id" select="@xmi:id"/>
+
 	<xsl:element name="a"><!-- create an anchor -->
 		<xsl:attribute name="id">
-			<xsl:text>ent-</xsl:text><xsl:value-of select="@xmi:id" />
+			<xsl:text>ent-</xsl:text><xsl:value-of select="$this-id" />
 		</xsl:attribute>
 			<!-- table name -->
 			<h3><xsl:value-of select="normalize-space(@name)" />
@@ -165,8 +167,21 @@ td.ralign { text-align: right }
 	</tr>
 	</thead>
 
-	<xsl:apply-templates select="attributes" />
+	<xsl:apply-templates select="attributes" mode="table"/>
 	</table>
+
+	<xsl:if test="//LogicalDataModel:Relationship[@owningEntity = $this-id]" >
+		<xsl:element name="div">
+			<xsl:attribute name="id">
+				<xsl:text>fk-</xsl:text><xsl:value-of select="$this-id" />
+			</xsl:attribute>
+				<!-- table name -->
+				<h4>Foreign key relationships:</h4>
+				<ul>
+					<xsl:apply-templates select="//LogicalDataModel:Relationship[@owningEntity = $this-id]" /><!-- add relationships for this entity -->
+				</ul>
+		</xsl:element>
+	</xsl:if>
 
 	<!-- hyperlink back to TOC -->
     <xsl:element name="a">
@@ -177,7 +192,53 @@ td.ralign { text-align: right }
 	<hr />
 </xsl:template>
 
-<xsl:template match="attributes">
+<xsl:template match="LogicalDataModel:Relationship">
+	<xsl:variable name="own-ent" select="@owningEntity" />
+	<xsl:variable name="this-end-id" select="relationshipEnds[@entity = $own-ent][1]/@xmi:id" /><!-- if the table is related to itself, one of the two ends will be selected randomly -->
+	<xsl:variable name="child-key" select="relationshipEnds[@xmi:id = $this-end-id]/@key" />
+	<xsl:variable name="parent-ent" select="relationshipEnds[not ( @xmi:id = $this-end-id ) ]/@entity" />
+	<xsl:variable name="parent-key" select="relationshipEnds[not ( @xmi:id = $this-end-id ) ]/@key" />
+
+	<li>
+		<!-- child attributes -->
+		<xsl:apply-templates select="//LogicalDataModel:Entity[@xmi:id = $own-ent]" mode="child-key" >
+			<xsl:with-param name="key-id" select="$child-key"/>
+		</xsl:apply-templates> 
+		<!-- FK name -->
+		-- <!-- (<xsl:value-of select="@name"/>) --> -->
+		<!-- parent entity name and attributes --> 
+		<xsl:apply-templates select="//LogicalDataModel:Entity[@xmi:id = $parent-ent]" mode="parent-key" >
+			<xsl:with-param name="key-id" select="$parent-key"/>
+		</xsl:apply-templates> 
+	</li>
+</xsl:template>
+
+<xsl:template match="LogicalDataModel:Entity" mode="child-key" >
+	<xsl:param name="key-id" />
+	<xsl:variable name="key-attrs" select="keys[ @xmi:id = $key-id ]/@attributes" />
+	<xsl:apply-templates select="attributes[contains( $key-attrs, @xmi:id)]" mode="fk"/>
+</xsl:template>
+
+
+<xsl:template match="LogicalDataModel:Entity" mode="parent-key" >
+	<xsl:param name="key-id" />
+	<xsl:variable name="key-attrs" select="keys[ @xmi:id = $key-id ]/@attributes" />
+	<xsl:value-of select="@name"/>(<xsl:apply-templates select="attributes[contains( $key-attrs, @xmi:id)]" mode="fk"/>)
+</xsl:template>
+
+<xsl:template match="keys" mode="fk" >
+	<xsl:variable name="thiskey" select="."/>
+	<xsl:variable name="att-ref" select="@attributes" />
+	<li>
+		<xsl:apply-templates select="../attributes[contains($att-ref,@xmi:id)]" mode="fk" /> --> 
+	</li>
+</xsl:template>
+
+<xsl:template match="attributes" mode="fk" >
+	<xsl:value-of select="@name"/>,
+</xsl:template>
+
+<xsl:template match="attributes" mode="table" >
 	<xsl:variable name="attr_id" select="@xmi:id" /> 
 	<xsl:element name="tr">
 		<!-- shade every other row -->
@@ -189,7 +250,7 @@ td.ralign { text-align: right }
 		<td><xsl:value-of select="@dataType" /></td>
 		<td><!-- key indicator: P and/or F -->
 			<!--  ../keys[@xsi:type='LogicalDataModel:PrimaryKey'] and contains(@attributes,$attr_id) --> 
-			<xsl:apply-templates select="../keys">
+			<xsl:apply-templates select="../keys" mode="key_ind">
 				<xsl:with-param name="attr_id" select="@xmi:id" /> 
 			</xsl:apply-templates>
 		</td>
@@ -200,11 +261,10 @@ td.ralign { text-align: right }
 	</xsl:element><!-- tr -->
 </xsl:template>
 
-<xsl:template match="keys">
+<xsl:template match="keys" mode="key_ind">
 	<xsl:param name="attr_id" />
 	<xsl:if test="@xsi:type='LogicalDataModel:PrimaryKey' and contains(@attributes,$attr_id)">
 		(P)
-		<xsl:variable name="has_pk" select="'yes'"/>
 	</xsl:if>
 	<xsl:if test="@xsi:type='LogicalDataModel:ForeignKey' and contains(@attributes,$attr_id)">
 		(F)
