@@ -109,12 +109,15 @@ td.ralign { text-align: right }
   <xsl:variable name="parentname" select="//LogicalDataModel:Package[@xmi:id=$parentid]/@name" />
   <xsl:element name="h2">
   	<xsl:attribute name="id">toc-<xsl:value-of select="$pkgid"/></xsl:attribute>
-    <xsl:text>Package</xsl:text>
+    <xsl:text>Package </xsl:text>
 	<xsl:value-of select="$parentname" />/<xsl:value-of select="$pkgname" />
   </xsl:element>
   	<xsl:if test="not(@parent)">
 	  	<p>Documentation for logical model <strong><xsl:value-of select="@targetNamespace" /></strong></p>
 	</xsl:if>
+  <div>
+  	Desciption: <xsl:value-of select="@description"/>
+  </div>
     <h3>Contents:</h3>
 	<ol><!-- table of contents with hyperlinks -->
     	<xsl:apply-templates select="//LogicalDataModel:Entity[@package=$pkgid]" mode="toc">
