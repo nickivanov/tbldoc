@@ -40,25 +40,25 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 	xmlns:LogicalDataModel="http:///com/ibm/db/models/logical/logical.ecore"
 	exclude-result-prefixes="xmi xsi LogicalDataModel"
 	>
+<!-- Top-level topic for the entire model -->
 <xsl:output method="topic" doctype-public="-//OASIS//DTD DITA Task//EN" doctype-system="../../dtd/technicalContent/dtd/topic.dtd" />
 <xsl:template match="/">
   <xsl:element name="topic">
   	<xsl:attribute name="id">ldm</xsl:attribute>
   	<title>Logical model documentation</title>
-  	<body>
-	  	<!-- Packages -->
-	    <xsl:apply-templates select="//LogicalDataModel:Package"/>
-
-	    <section>
-
-	    <!-- entities -->
+  	<topic id="ldm-packages">
+  		<title>Packages</title>
+  		<shortdesc>Packages are used to group entities in the OneDB model based on their purpose</shortdesc>
+  		<body>
+	    	<xsl:apply-templates select="//LogicalDataModel:Package"/><!-- each package is a section -->
+	    </body>
+	</topic>
+	<topic id="ldm-entities">
 	    <title>Entities</title>
-	   	<xsl:apply-templates select="//LogicalDataModel:Entity" mode="entity">
+	   	<xsl:apply-templates select="//LogicalDataModel:Entity" mode="entity"><!-- each entity is a topic -->
 	   		<xsl:sort select="@name"/>
 	   	</xsl:apply-templates>
-	    </section>
-
-  	</body>
+	</topic>
   </xsl:element>
 </xsl:template>
 
@@ -74,9 +74,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   	<xsl:if test="not(@parent)">
 	  	<p>Documentation for logical model <b><xsl:value-of select="@targetNamespace" /></b></p>
 	</xsl:if>
-	    <p>
-	  	   Desciption: <xsl:value-of select="@description"/>
-	  	</p>
+	    <p>Description: <xsl:value-of select="@description"/></p>
   	    <xsl:if test="//LogicalDataModel:Entity[@package=$pkgid]"><!-- if we have any entities -->
 		    <p><b>Contents:</b></p>
 			<ol><!-- table of contents with hyperlinks -->
@@ -94,8 +92,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 		<xsl:element name="xref">
 			<!-- hyperlink to the table description -->
 			<xsl:attribute name="href">
-				<!-- DITA XREF target IDs must contain the parent topic ID. "ldm" in our case -->
-				<xsl:text>#ldm/ent-</xsl:text><xsl:value-of select="@xmi:id" />
+				<xsl:text>#ent-</xsl:text><xsl:value-of select="@xmi:id" />
 			</xsl:attribute>
 			<xsl:value-of select="normalize-space(@name)" /> 
 		</xsl:element>
@@ -105,66 +102,64 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 <xsl:template match="LogicalDataModel:Entity" mode="entity">
 	<xsl:variable name="this-id" select="@xmi:id"/>
 
-	<xsl:element name="p"><!-- create an anchor -->
+	<xsl:element name="topic"><!-- create an anchor -->
 		<xsl:attribute name="id">
 			<xsl:text>ent-</xsl:text><xsl:value-of select="$this-id" />
 		</xsl:attribute>
-			<!-- table name -->
-			<b><xsl:value-of select="normalize-space(@name)" /></b>
+		<!-- table name -->
+		<title><xsl:value-of select="normalize-space(@name)" /></title>
+		<abstract><lines><!-- table description -->
+			<xsl:value-of select="@description" />
+		</lines></abstract>
+		<body>
+			<section>
+				<!-- a table containing attribute descriptions -->
+			    <table>
+			    	<tgroup cols="6" colsep="1" rowsep="1">
+			    		<colspec colnum="1" colwidth="2*"/>
+			    		<colspec colnum="2" colwidth="2*"/>
+			    		<colspec colnum="3" colwidth="1*"/>
+			    		<colspec colnum="4" colwidth="1*"/>
+			    		<colspec colnum="5" colwidth="1*"/>
+			    		<colspec colnum="6" colwidth="3*"/>
+						<!-- header row -->
+						<thead>
+						    <row>
+						    	<entry>Column name</entry>
+						    	<entry>Data type</entry>
+						    	<entry>Key</entry>
+						    	<entry>Required</entry>
+						    	<entry>Default</entry>
+						    	<entry>Description</entry>
+							</row>
+						</thead>
+						<tbody>
+							<xsl:apply-templates select="attributes" mode="table"/>
+						</tbody>
+					</tgroup>
+				</table>
+			</section>
+			<xsl:if test="//LogicalDataModel:Relationship[@owningEntity = $this-id]" ><!-- if this entity owns any relationships -->
+				<xsl:element name="section">
+					<xsl:attribute name="id">
+						<xsl:text>fk-</xsl:text><xsl:value-of select="$this-id" />
+					</xsl:attribute>
+					<title>Foreign key relationships:</title>
+					<ul>
+						<xsl:apply-templates select="//LogicalDataModel:Relationship[@owningEntity = $this-id]" /><!-- add relationships for this entity -->
+					</ul>
+				</xsl:element>
+			</xsl:if>
+			<section>
+				<!-- hyperlink back to TOC -->
+
+			    <xsl:element name="xref">
+			    	<xsl:attribute name="href">#ldm-packages/toc-<xsl:value-of select="@package"/></xsl:attribute>
+					Back to the table of contents
+				</xsl:element>
+			</section>
+		</body>
 	</xsl:element>
-	<p><lines><!-- table description -->
-		<xsl:value-of select="@description" />
-	</lines></p>
-
-	<!-- an html table containing column descriptions -->
-    <table>
-    	<tgroup cols="6" colsep="1" rowsep="1">
-    		<colspec colnum="1" colwidth="20%"/>
-    		<colspec colnum="2" colwidth="20%"/>
-    		<colspec colnum="3" colwidth="10%"/>
-    		<colspec colnum="4" colwidth="10%"/>
-    		<colspec colnum="5" colwidth="10%"/>
-    		<colspec colnum="6" colwidth="30%"/>
-			<!-- header row -->
-			<thead>
-			    <row>
-			    	<entry>Column name</entry>
-			    	<entry>Data type</entry>
-			    	<entry>Key</entry>
-			    	<entry>Required</entry>
-			    	<entry>Default</entry>
-			    	<entry>Description</entry>
-				</row>
-			</thead>
-			<tbody>
-				<xsl:apply-templates select="attributes" mode="table"/>
-			</tbody>
-		</tgroup>
-	</table>
-
-	<xsl:if test="//LogicalDataModel:Relationship[@owningEntity = $this-id]" ><!-- if this entity owns any relationships -->
-		<xsl:element name="p">
-			<xsl:attribute name="id">
-				<xsl:text>fk-</xsl:text><xsl:value-of select="$this-id" />
-			</xsl:attribute>
-			<!-- table name -->
-			<b>Foreign key relationships:</b>
-		</xsl:element>
-		<p>
-		<ul>
-			<xsl:apply-templates select="//LogicalDataModel:Relationship[@owningEntity = $this-id]" /><!-- add relationships for this entity -->
-		</ul>
-		</p>
-	</xsl:if>
-
-	<p>
-		<!-- hyperlink back to TOC -->
-
-	    <xsl:element name="xref">
-	    	<xsl:attribute name="href">#ldm/toc-<xsl:value-of select="@package"/></xsl:attribute>
-			Back to the table of contents
-		</xsl:element>
-	</p>
 </xsl:template>
 
 <xsl:template match="LogicalDataModel:Relationship">
